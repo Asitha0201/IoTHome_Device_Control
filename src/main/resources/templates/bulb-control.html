@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Bulb Control Panel</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .bulb-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .bulb {
+            text-align: center;
+            padding: 20px;
+        }
+        .bulb-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 10px auto;
+            background-color: #ddd;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .bulb-icon.on {
+            background-color: #ffd700;
+            box-shadow: 0 0 20px #ffd700;
+        }
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .connection-status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .response-message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+<div class="control-panel">
+    <h1>LED Bulb Control Panel</h1>
+
+    <div class="connection-status" id="connectionStatus">
+        Connected (Client ID: <span th:text="${clientId}">Unknown</span>)
+    </div>
+
+    <div class="bulb-container">
+        <div class="bulb">
+            <div class="bulb-icon" th:classappend="${bulbStates.get(1)} ? 'on'"
+                 onclick="toggleBulb(1)" id="bulb1">
+            </div>
+            <div class="status">Bulb 1:
+                <span th:text="${bulbStates.get(1)} ? 'ON' : 'OFF'">OFF</span>
+            </div>
+        </div>
+
+        <div class="bulb">
+            <div class="bulb-icon" th:classappend="${bulbStates.get(2)} ? 'on'"
+                 onclick="toggleBulb(2)" id="bulb2">
+            </div>
+            <div class="status">Bulb 2:
+                <span th:text="${bulbStates.get(2)} ? 'ON' : 'OFF'">OFF</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="response-message" id="responseMessage"></div>
+</div>
+
+<script th:inline="javascript">
+    function toggleBulb(bulbId) {
+        $.ajax({
+            url: '/toggle/' + bulbId,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    updateBulbState(bulbId, response.state);
+                    showMessage(response.response, true);
+                } else {
+                    showMessage(response.error, false);
+                }
+            },
+            error: function(xhr) {
+                showMessage('Error connecting to server', false);
+            }
+        });
+    }
+
+    function updateBulbState(bulbId, state) {
+        const bulb = $('#bulb' + bulbId);
+        if (state) {
+            bulb.addClass('on');
+        } else {
+            bulb.removeClass('on');
+        }
+        bulb.siblings('.status').find('span').text(state ? 'ON' : 'OFF');
+    }
+
+    function showMessage(message, isSuccess) {
+        const messageDiv = $('#responseMessage');
+        messageDiv.removeClass('success error').addClass(isSuccess ? 'success' : 'error');
+        messageDiv.text(message).fadeIn().delay(3000).fadeOut();
+    }
+
+    function updateConnectionStatus(connected) {
+        const statusDiv = $('#connectionStatus');
+        if (connected) {
+            statusDiv.css('background-color', '#e8f5e9').css('color', '#2e7d32');
+            statusDiv.text('Connected (Client ID: ' + /*[[${clientId}]]*/ 'Unknown' + ')');
+        } else {
+            statusDiv.css('background-color', '#ffebee').css('color', '#c62828');
+            statusDiv.text('Disconnected - Trying to reconnect...');
+        }
+    }
+
+    // Check connection status every 5 seconds
+    setInterval(function() {
+        $.get('/status', function(response) {
+            updateConnectionStatus(response.connected);
+        });
+    }, 5000);
+</script>
+</body>
+</html>
