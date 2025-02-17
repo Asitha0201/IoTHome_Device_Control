@@ -54,11 +54,19 @@
             background-color: #e8f5e9;
             color: #2e7d32;
         }
+        .sensor-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 10px;
+        }
         .response-message {
             margin-top: 20px;
             padding: 10px;
             border-radius: 5px;
             display: none;
+            font-weight: bold;
         }
         .success {
             background-color: #d4edda;
@@ -71,16 +79,18 @@
     </style>
 </head>
 <body>
-<div class="sensor-container">
-    <h3>Temperature & Humidity</h3>
-    <p id="sensorData">Fetching...</p>
-</div>
-
 <div class="control-panel">
     <h1>LED Bulb Control Panel</h1>
 
     <div class="connection-status" id="connectionStatus">
         Connected (Client ID: <span th:text="${clientId}">Unknown</span>)
+    </div>
+
+    <!-- Sensor Display -->
+    <div class="sensor-container">
+        <h3>Temperature & Humidity</h3>
+        <p>Temperature: <span id="temperature">Fetching...</span> °C</p>
+        <p>Humidity: <span id="humidity">Fetching...</span> %</p>
     </div>
 
     <div class="bulb-container">
@@ -121,7 +131,7 @@
         </div>
     </div>
 
-    <div class="response-message" id="responseMessage"></div>
+    <div class="response-message" id="bulbMessage"></div>
 </div>
 
 <script th:inline="javascript">
@@ -132,31 +142,16 @@
             success: function(response) {
                 if (response.success) {
                     updateBulbState(bulbId, response.state);
-                    showMessage(response.response, true);
+                    showBulbMessage(response.response, true);
                 } else {
-                    showMessage(response.error, false);
+                    showBulbMessage(response.error, false);
                 }
             },
             error: function(xhr) {
-                showMessage('Error connecting to server', false);
+                showBulbMessage('Error connecting to server', false);
             }
         });
     }
-
-    function updateSensorData() {
-    $.get('/sensor', function(response) {
-        if (response.success) {
-            $('#sensorData').text(response.data);
-        } else {
-            $('#sensorData').text('Error: ' + response.error);
-        }
-    });
-}
-
-// Fetch sensor data every 5 seconds
-setInterval(updateSensorData, 5000);
-updateSensorData();  // Fetch immediately on page load
-
 
     function updateBulbState(bulbId, state) {
         const bulb = $('#bulb' + bulbId);
@@ -168,8 +163,8 @@ updateSensorData();  // Fetch immediately on page load
         bulb.siblings('.status').find('span').text(state ? 'ON' : 'OFF');
     }
 
-    function showMessage(message, isSuccess) {
-        const messageDiv = $('#responseMessage');
+    function showBulbMessage(message, isSuccess) {
+        const messageDiv = $('#bulbMessage');
         messageDiv.removeClass('success error').addClass(isSuccess ? 'success' : 'error');
         messageDiv.text(message).fadeIn().delay(3000).fadeOut();
     }
@@ -185,6 +180,30 @@ updateSensorData();  // Fetch immediately on page load
         }
     }
 
+    function updateSensorData() {
+        $.get('/sensor', function(response) {
+            if (response.success) {
+                let sensorText = response.data;
+                let tempMatch = sensorText.match(/TEMP: ([\d.]+)°C/);
+                let humidMatch = sensorText.match(/HUMID: ([\d.]+)%/);
+
+                if (tempMatch) {
+                    $('#temperature').text(tempMatch[1]);
+                }
+                if (humidMatch) {
+                    $('#humidity').text(humidMatch[1]);
+                }
+            } else {
+                $('#temperature').text('Error');
+                $('#humidity').text('Error');
+            }
+        });
+    }
+
+    // Fetch sensor data every 5 seconds without affecting bulbs
+    setInterval(updateSensorData, 5000);
+    updateSensorData();  // Fetch immediately on page load
+
     // Check connection status every 5 seconds
     setInterval(function() {
         $.get('/status', function(response) {
@@ -192,5 +211,6 @@ updateSensorData();  // Fetch immediately on page load
         });
     }, 5000);
 </script>
+
 </body>
 </html>
