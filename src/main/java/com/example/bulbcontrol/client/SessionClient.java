@@ -41,7 +41,7 @@ public class SessionClient {
 
 
     public SessionClient() {
-        this.host = "192.168.217.11"; // Replace with your ESP32's IP
+        this.host = "192.168.217.11"; // **** IP ADDRESS ***
         this.port = 12345;
         this.clientId = "Web-" + System.currentTimeMillis();
     }
