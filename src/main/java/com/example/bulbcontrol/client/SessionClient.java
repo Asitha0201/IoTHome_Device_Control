@@ -24,8 +24,24 @@ public class SessionClient {
     private Thread writeThread;
     private final String clientId;
 
+    public String getTemperatureAndHumidity() {
+        ensureConnected();
+        if (!running) {
+            return "Error: Not connected";
+        }
+        try {
+            commandQueue.put("GET_TEMP_HUMIDITY");
+            Thread.sleep(200);  // Wait for ESP32 response
+            return lastResponse != null ? lastResponse : "No response received";
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "Error: Command interrupted";
+        }
+    }
+
+
     public SessionClient() {
-        this.host = "192.168.168.11"; // Replace with your ESP32's IP
+        this.host = "192.168.217.11"; // **** IP ADDRESS ***
         this.port = 12345;
         this.clientId = "Web-" + System.currentTimeMillis();
     }

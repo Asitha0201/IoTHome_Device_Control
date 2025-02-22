@@ -15,8 +15,11 @@ public class BulbViewController {
 
     public BulbViewController(SessionClient sessionClient) {
         this.sessionClient = sessionClient;
+        // Initialize all 4 bulbs
         bulbStates.put(1, false);
         bulbStates.put(2, false);
+        bulbStates.put(3, false);
+        bulbStates.put(4, false);
     }
 
     @GetMapping("/")
@@ -62,6 +65,24 @@ public class BulbViewController {
         status.put("clientId", sessionClient.getClientId());
         return status;
     }
+
+    @GetMapping("/sensor")
+    @ResponseBody
+    public Map<String, Object> getSensorData() {
+        Map<String, Object> result = new HashMap<>();
+
+        if (!sessionClient.isConnected()) {
+            result.put("success", false);
+            result.put("error", "Not connected to ESP32");
+            return result;
+        }
+
+        String response = sessionClient.getTemperatureAndHumidity();
+        result.put("success", true);
+        result.put("data", response);
+        return result;
+    }
+
 
     @PreDestroy
     public void cleanup() {
